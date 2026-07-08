@@ -6,8 +6,7 @@
 		"--privileged",
 		"--device",
 		"/dev/fuse",
-		"--hostname=ansible-dev-container",
-		"--env-file=.devcontainer/local.env",
+		"--hostname=ansible-dev-container"
 	],
 	"updateRemoteUserUID": true,
 	"mounts": [
