@@ -1,0 +1,15 @@
+---
+- name: Ensure KubeVirt VM is absent
+  kubernetes.core.k8s:
+    state: absent
+    kubeconfig: "{{ lookup('env', 'KUBECONFIG') | default(molecule_kubevirt_default_kubeconfig_path, true) }}"
+    api_version: kubevirt.io/v1
+    kind: VirtualMachine
+    name: "{{ molecule_kubevirt_vm_name }}"
+    namespace: "{{ molecule_namespace | default(molecule_kubevirt_default_namespace) }}"
+  vars:
+    molecule_kubevirt_vm_name: "{{ item.name }}"
+    molecule_kubevirt_vm_containerdisk_image: "{{ item.image }}"
+  loop: "{{ molecule_yml.platforms | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"

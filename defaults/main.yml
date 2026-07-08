@@ -1,0 +1,33 @@
+---
+# defaults file for molecule_kubevirt
+molecule_kubevirt_default_kubeconfig_path: "{{ lookup('env', 'HOME') + '/.kube/config' }}"
+molecule_kubevirt_default_namespace: "molecule"
+
+molecule_kubevirt_default_ssh_port: 22
+molecule_kubevirt_default_ssh_user: "molecule"
+molecule_kubevirt_default_ssh_password: "password"
+
+molecule_kubevirt_default_vm_containerdisk_image_pull_policy: "IfNotPresent"
+molecule_kubevirt_default_vm_arch: "amd64"
+molecule_kubevirt_default_vm_userdata: |
+  #cloud-config
+  hostname: "{vm_name}"
+  disable_root: false
+  ssh_pwauth: true
+  user: "{{ molecule_kubevirt_vm_username | default(molecule_kubevirt_default_ssh_user) }}"
+  passwd: "{{ molecule_kubevirt_vm_password | default(molecule_kubevirt_default_ssh_password) }}"
+  users:
+    - default
+    - name: {{ molecule_kubevirt_vm_username | default(molecule_kubevirt_default_ssh_user) }}
+      groups: sudo, wheel
+      shell: /bin/bash
+      sudo: ['ALL=(ALL) NOPASSWD:ALL']
+      lock_passwd: false
+      plain_text_passwd: "{{ molecule_kubevirt_vm_password | default(molecule_kubevirt_default_ssh_password) }}"
+molecule_kubevirt_default_vm_network_interface_name: "physical-net"
+molecule_kubevirt_default_vm_network_attachment: "kubevirt/physical-bridge-network"
+
+molecule_kubevirt_default_vm_wait_retries: 600
+molecule_kubevirt_default_vm_wait_delay: 2
+molecule_kubevirt_default_ssh_wait_timeout: 300
+molecule_kubevirt_default_ssh_wait_delay: 2

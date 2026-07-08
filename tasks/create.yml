@@ -1,0 +1,152 @@
+---
+- name: Ensure Python kubernetes client is installed
+  ansible.builtin.pip:
+    name: kubernetes
+    state: present
+    executable: pip3
+
+- name: Ensure namespace molecule exists
+  kubernetes.core.k8s:
+    state: present
+    kubeconfig: "{{ lookup('env', 'KUBECONFIG') | default(molecule_kubevirt_default_kubeconfig_path, true) }}"
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ molecule_namespace | default(molecule_kubevirt_default_namespace) }}"
+
+- name: Validate VM platform definitions
+  ansible.builtin.assert:
+    that:
+      - item.name is defined
+      - item.image is defined
+    fail_msg: "Each platform in molecule_yml.platforms must define name and image"
+  loop: "{{ molecule_yml.platforms | default([]) }}"
+  loop_control:
+    label: "{{ item.name | default('undefined') }}"
+
+- name: Ensure KubeVirt VMs exist
+  kubernetes.core.k8s:
+    state: present
+    kubeconfig: "{{ lookup('env', 'KUBECONFIG') | default(molecule_kubevirt_default_kubeconfig_path, true) }}"
+    definition: "{{ lookup('template', 'kubevirt_vm.yml.j2') | from_yaml }}"
+  vars:
+    molecule_kubevirt_vm_name: "{{ item.name }}"
+    molecule_kubevirt_vm_username: "{{ item.user | default(molecule_kubevirt_default_ssh_user | default('root')) }}"
+    molecule_kubevirt_vm_password: "{{ item.password | default(molecule_kubevirt_default_ssh_password | default('password')) }}"
+    molecule_kubevirt_vm_containerdisk_image: "{{ item.image }}"
+    molecule_kubevirt_vm_arch: "{{ item.arch | default(molecule_kubevirt_default_vm_arch) }}"
+    molecule_kubevirt_vm_containerdisk_image_pull_policy: "{{ item.image_pull_policy | default(molecule_kubevirt_default_vm_containerdisk_image_pull_policy) }}"
+    molecule_kubevirt_vm_userdata: "{{ item.userdata | default(molecule_kubevirt_default_vm_userdata | replace('{vm_name}', item.name)) }}"
+  loop: "{{ molecule_yml.platforms | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Wait for KubeVirt VMs to be running with an IP address
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ lookup('env', 'KUBECONFIG') | default(molecule_kubevirt_default_kubeconfig_path, true) }}"
+    api_version: kubevirt.io/v1
+    kind: VirtualMachineInstance
+    name: "{{ item.name }}"
+    namespace: "{{ molecule_namespace | default(molecule_kubevirt_default_namespace) }}"
+  register: molecule_kubevirt_vmi_wait
+  until:
+    - molecule_kubevirt_vmi_wait.resources | length > 0
+    - ((molecule_kubevirt_vmi_wait.resources[0].status | default({})).phase | default('')) == 'Running'
+    - ((molecule_kubevirt_vmi_wait.resources[0].status | default({})).interfaces | default([])
+      | selectattr('ipAddress', 'defined')
+      | map(attribute='ipAddress')
+      | reject('equalto', '')
+      | list
+      | length) > 0
+  retries: "{{ molecule_kubevirt_default_vm_wait_retries }}"
+  delay: "{{ molecule_kubevirt_default_vm_wait_delay }}"
+  loop: "{{ molecule_yml.platforms | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+
+
+- name: Build VM IP map by VM name
+  ansible.builtin.set_fact:
+    molecule_kubevirt_vm_ip_map: >-
+      {{
+        (molecule_kubevirt_vm_ip_map | default({}))
+        | combine(
+          {
+            item.item.name: (
+              ((item.resources[0].status | default({})).interfaces | default([])
+              | selectattr('ipAddress', 'defined')
+              | map(attribute='ipAddress')
+              | reject('equalto', '')
+              | list
+              | first
+              | default(''))
+            )
+          }
+        )
+      }}
+  loop: "{{ molecule_kubevirt_vmi_wait.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name | default('unknown') }}"
+
+- name: Build platforms list with VM IP addresses
+  ansible.builtin.set_fact:
+    molecule_kubevirt_platforms_with_ip: >-
+      {{
+        (molecule_kubevirt_platforms_with_ip | default([]))
+        + [
+          item
+          | combine(
+            {
+              'ip': (molecule_kubevirt_vm_ip_map[item.name] | default(''))
+            }
+          )
+        ]
+      }}
+  loop: "{{ molecule_yml.platforms | default([]) }}"
+  loop_control:
+    label: "{{ item.name | default('unknown') }}"
+
+- name: Add IP property to molecule_yml.platforms
+  ansible.builtin.set_fact:
+    molecule_yml: "{{ molecule_yml | combine({'platforms': molecule_kubevirt_platforms_with_ip}, recursive=True) }}"
+
+- name: Wait for SSH port to be available on all VMs
+  ansible.builtin.wait_for:
+    host: "{{ item.ip }}"
+    port: "{{ item.port | default(molecule_kubevirt_default_ssh_port | default(22), true) }}"
+    delay: "{{ molecule_kubevirt_default_ssh_wait_delay }}"
+    timeout: "{{ molecule_kubevirt_default_ssh_wait_timeout }}"
+    state: started
+  loop: "{{ molecule_yml.platforms | default([]) }}"
+  loop_control:
+    label: "{{ item.name | default('unknown') }}"
+
+
+# Mandatory configuration for Molecule to function.
+- name: Populate instance config dict
+  ansible.builtin.set_fact:
+    instance_conf_dict:
+      instance: "{{ item.name }}"
+      instance_id: "{{ item.name }}"
+      address: "{{ item.ip | default('') }}"
+      user: "{{ item.user | default(molecule_kubevirt_default_ssh_user | default('root')) }}"
+      password: "{{ item.password | default(molecule_kubevirt_default_ssh_password | default('password')) }}"
+      port: "{{ item.port | default(molecule_kubevirt_default_ssh_port | default(22), true) }}"
+      identity_file: "{{ item.identity_file | default('') }}"
+  loop: "{{ molecule_yml.platforms | default([]) }}"
+  register: instance_config_dict
+
+- name: Convert instance config dict to a list
+  ansible.builtin.set_fact:
+    instance_conf: "{{ instance_config_dict.results | map(attribute='ansible_facts.instance_conf_dict') | list }}"
+
+- name: Dump instance config
+  ansible.builtin.copy:
+    content: "{{ instance_conf | to_json | from_json | to_yaml }}"
+    dest: "{{ molecule_instance_config }}"
+
+- name: Print instance_conf_dict
+  ansible.builtin.debug:
+    var: instance_config_dict
