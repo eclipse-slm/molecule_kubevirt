@@ -16,18 +16,18 @@ platforms:
     user: user
     password: password
     # TODO: fix creating user with cloud-init, currently not working
-  - name: raspios-trixie-02
-    image: ghcr.io/ipa-big/kubevirt_containerdisk/raspios-trixie-arm64-lite:2026-06-18
-    arch: arm64
-    # default user/password:
-    user: user
-    password: password
-  - name: raspios-trixie-03
-    image: ghcr.io/ipa-big/kubevirt_containerdisk/raspios-trixie-arm64-lite:2026-06-18
-    arch: arm64
-    # default user/password:
-    user: user
-    password: password
+  # - name: raspios-trixie-02
+  #   image: ghcr.io/ipa-big/kubevirt_containerdisk/raspios-trixie-arm64-lite:2026-06-18
+  #   arch: arm64
+  #   # default user/password:
+  #   user: user
+  #   password: password
+  # - name: raspios-trixie-03
+  #   image: ghcr.io/ipa-big/kubevirt_containerdisk/raspios-trixie-arm64-lite:2026-06-18
+  #   arch: arm64
+  #   # default user/password:
+  #   user: user
+  #   password: password
 
 
 ansible:
