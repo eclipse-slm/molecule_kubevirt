@@ -4,6 +4,7 @@
 - name: Verify
   hosts: all
   gather_facts: true
+  become: true
   tasks:
     - name: Create empty file
       ansible.builtin.file:
