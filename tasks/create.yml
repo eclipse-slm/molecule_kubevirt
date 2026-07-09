@@ -19,8 +19,8 @@
   ansible.builtin.assert:
     that:
       - item.name is defined
-      - item.image is defined
-    fail_msg: "Each platform in molecule_yml.platforms must define name and image"
+      - item.image is defined or item.golden_image is defined
+    fail_msg: "Each platform in molecule_yml.platforms must define name and image/golden_image"
   loop: "{{ molecule_yml.platforms | default([]) }}"
   loop_control:
     label: "{{ item.name | default('undefined') }}"
@@ -29,14 +29,15 @@
   kubernetes.core.k8s:
     state: present
     kubeconfig: "{{ lookup('env', 'KUBECONFIG') | default(molecule_kubevirt_default_kubeconfig_path, true) }}"
-    definition: "{{ lookup('template', 'kubevirt_vm.yml.j2') | from_yaml }}"
+    definition: "{{ lookup('template', template_file) | from_yaml }}"
   vars:
+    template_file: "{{ 'kubevirt_vm.yml.j2' if item.golden_image | default('') | length == 0 else 'kubevirt_vm_golden_image.yml.j2' }}"
     molecule_kubevirt_vm_name: "{{ item.name }}"
     molecule_kubevirt_vm_username: "{{ item.user | default(molecule_kubevirt_default_ssh_user | default('root')) }}"
     molecule_kubevirt_vm_password: "{{ item.password | default(molecule_kubevirt_default_ssh_password | default('password')) }}"
     molecule_kubevirt_vm_containerdisk_image: "{{ item.image }}"
+    molecule_kubevirt_golden_image: "{{ item.golden_image | default('') }}"
     molecule_kubevirt_vm_arch: "{{ item.arch | default(molecule_kubevirt_default_vm_arch) }}"
-    molecule_kubevirt_vm_containerdisk_image_pull_policy: "{{ item.image_pull_policy | default(molecule_kubevirt_default_vm_containerdisk_image_pull_policy) }}"
     molecule_kubevirt_vm_userdata: "{{ item.userdata | default(molecule_kubevirt_default_vm_userdata | replace('{vm_name}', item.name)) }}"
   loop: "{{ molecule_yml.platforms | default([]) }}"
   loop_control:
