@@ -133,6 +133,7 @@
       address: "{{ item.ip | default('') }}"
       user: "{{ item.user | default(molecule_kubevirt_default_ssh_user | default('root')) }}"
       password: "{{ item.password | default(molecule_kubevirt_default_ssh_password | default('password')) }}"
+      become_pass: "{{ item.become_password | default(item.password | default('password')) }}"
       port: "{{ item.port | default(molecule_kubevirt_default_ssh_port | default(22), true) }}"
       identity_file: "{{ item.identity_file | default('') }}"
   loop: "{{ molecule_yml.platforms | default([]) }}"
