@@ -5,6 +5,19 @@ metadata:
   name: "{{ molecule_kubevirt_vm_name }}"
   namespace: "{{ molecule_namespace | default(molecule_kubevirt_default_namespace) }}"
 spec:
+  dataVolumeTemplates:
+  - metadata:
+      name: "{{ molecule_kubevirt_vm_name }}-imported-volume"
+    spec:
+      source:
+        registry:
+          url: "docker://{{ molecule_kubevirt_vm_containerdisk_image }}"
+      storage:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
   runStrategy: Always
   template:
     spec:
@@ -21,7 +34,7 @@ spec:
           disks:
             - disk:
                 bus: virtio
-              name: containerdisk
+              name: "{{ molecule_kubevirt_vm_name }}-imported-volume"
             - disk:
                 bus: virtio
               name: cloudinitdisk
@@ -42,10 +55,9 @@ spec:
           multus:
             networkName: "{{ molecule_kubevirt_default_vm_network_attachment }}"
       volumes:
-        - containerDisk:
-            image: "{{ molecule_kubevirt_vm_containerdisk_image }}"
-            imagePullPolicy: "{{ molecule_kubevirt_vm_containerdisk_image_pull_policy }}"
-          name: containerdisk
+        - dataVolume:
+           name: "{{ molecule_kubevirt_vm_name }}-imported-volume"
+          name: "{{ molecule_kubevirt_vm_name }}-imported-volume"
         - cloudInitNoCloud:
             userData: |
 {{ molecule_kubevirt_vm_userdata | indent(14, true) }}
