@@ -17,7 +17,7 @@ spec:
           - ReadWriteOnce
         resources:
           requests:
-            storage: 10Gi
+            storage: "{{ molecule_kubevirt_vm_volume_size }}"
   runStrategy: Always
   template:
     spec:
