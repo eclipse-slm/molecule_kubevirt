@@ -9,15 +9,20 @@ dependency:
     requirements-file: requirements.yml
 
 platforms:
+  # Downloads image and creates a Volume based on Image
   - name: raspios-bookworm-01
     image: ghcr.io/ipa-big/kubevirt_containerdisk/raspios-bookworm-arm64-lite:2026-06-18
     arch: arm64
-  - name: raspios-bookworm-02
-    image: ghcr.io/ipa-big/kubevirt_containerdisk/raspios-bookworm-arm64-lite:2026-06-18
+  # Clones alread existing Volume based on Golden Image
+  - name: raspios-bookworm-01-golden-image
+    golden_image: raspios-bookworm-arm64-lite
     arch: arm64
-  - name: raspios-bookworm-03
-    image: ghcr.io/ipa-big/kubevirt_containerdisk/raspios-bookworm-arm64-lite:2026-06-18
-    arch: arm64
+  # - name: raspios-bookworm-02
+  #   image: ghcr.io/ipa-big/kubevirt_containerdisk/raspios-bookworm-arm64-lite:2026-06-18
+  #   arch: arm64
+  # - name: raspios-bookworm-03
+  #   image: ghcr.io/ipa-big/kubevirt_containerdisk/raspios-bookworm-arm64-lite:2026-06-18
+  #   arch: arm64
 
 
 ansible:
