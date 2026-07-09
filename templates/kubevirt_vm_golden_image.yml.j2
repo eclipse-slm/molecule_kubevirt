@@ -1,0 +1,65 @@
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: "{{ molecule_kubevirt_vm_name }}"
+  namespace: "{{ molecule_namespace | default(molecule_kubevirt_default_namespace) }}"
+spec:
+  dataVolumeTemplates:
+  - metadata:
+      name: "{{ molecule_kubevirt_vm_name }}-imported-volume"
+    spec:
+      source:
+        pvc:
+          namespace: molecule
+          name: {{ molecule_kubevirt_golden_image }}
+      pvc:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+  runStrategy: Always
+  template:
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: "{{ molecule_kubevirt_vm_arch }}"
+      architecture: "{{ molecule_kubevirt_vm_arch }}"
+      domain:
+        cpu:
+          model: host-passthrough
+        machine:
+          type: "{{ 'virt' if molecule_kubevirt_vm_arch == 'arm64' else 'q35' }}"
+        devices:
+          autoattachGraphicsDevice: false
+          disks:
+            - disk:
+                bus: virtio
+              name: "disk0"
+            - disk:
+                bus: virtio
+              name: cloudinitdisk
+          interfaces:
+            - name: "{{ molecule_kubevirt_default_vm_network_interface_name }}"
+              bridge: {}
+          rng: {}
+        resources:
+          requests:
+            memory: 1Gi
+        firmware:
+          bootloader:
+            efi:
+              secureBoot: false
+      terminationGracePeriodSeconds: 180
+      networks:
+        - name: "{{ molecule_kubevirt_default_vm_network_interface_name }}"
+          multus:
+            networkName: "{{ molecule_kubevirt_default_vm_network_attachment }}"
+      volumes:
+        - name: "disk0"
+          dataVolume:
+            name: "{{ molecule_kubevirt_vm_name }}-imported-volume"
+        - cloudInitNoCloud:
+            userData: |
+{{ molecule_kubevirt_vm_userdata | indent(14, true) }}
+          name: cloudinitdisk
