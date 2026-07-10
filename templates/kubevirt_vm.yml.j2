@@ -19,6 +19,9 @@ spec:
           requests:
             storage: "{{ molecule_kubevirt_vm_volume_size }}"
   runStrategy: Always
+  instancetype:
+    name: {{ molecule_kubevirt_vm_instance_type }}
+    kind: VirtualMachineClusterInstancetype
   template:
     spec:
       nodeSelector:
@@ -42,9 +45,6 @@ spec:
             - name: "{{ molecule_kubevirt_default_vm_network_interface_name }}"
               bridge: {}
           rng: {}
-        resources:
-          requests:
-            memory: 1Gi
         firmware:
           bootloader:
             efi:

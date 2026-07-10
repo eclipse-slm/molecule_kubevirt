@@ -37,6 +37,7 @@
     molecule_kubevirt_vm_password: "{{ item.password | default(molecule_kubevirt_default_ssh_password | default('password')) }}"
     molecule_kubevirt_vm_containerdisk_image: "{{ item.image }}"
     molecule_kubevirt_golden_image: "{{ item.golden_image | default('') }}"
+    molecule_kubevirt_vm_instance_type: "{{ item.instancetype | default(molecule_kubevirt_default_vm_instancetype | default('u1.medium')) }}"
     molecule_kubevirt_vm_volume_size: "{{ item.volume_size | default(molecule_kubevirt_default_vm_volume_size | default('10Gi')) }}"
     molecule_kubevirt_vm_arch: "{{ item.arch | default(molecule_kubevirt_default_vm_arch) }}"
     molecule_kubevirt_vm_userdata: "{{ item.userdata | default(molecule_kubevirt_default_vm_userdata | replace('{vm_name}', item.name)) }}"
