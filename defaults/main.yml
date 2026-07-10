@@ -7,8 +7,8 @@ molecule_kubevirt_default_ssh_port: 22
 molecule_kubevirt_default_ssh_user: "molecule"
 molecule_kubevirt_default_ssh_password: "password"
 
-molecule_kubevirt_default_vm_containerdisk_image_pull_policy: "IfNotPresent"
 molecule_kubevirt_default_vm_arch: "amd64"
+molecule_kubevirt_default_vm_instancetype: "u1.medium"
 molecule_kubevirt_default_vm_userdata: |
   #cloud-config
   hostname: "{vm_name}"
