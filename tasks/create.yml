@@ -4,6 +4,7 @@
     name: kubernetes
     state: present
     executable: pip3
+    break_system_packages: true
 
 - name: Ensure namespace molecule exists
   kubernetes.core.k8s:
