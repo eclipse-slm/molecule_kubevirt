@@ -48,7 +48,7 @@ ansible:
     verify: ../default/verify.yml
 
 scenario:
-  name: raspios_trixie
+  name: ubuntu_24
   test_sequence:
     - dependency
     - cleanup
